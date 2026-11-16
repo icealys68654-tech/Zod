@@ -1,0 +1,972 @@
+Here is a complete, standalone HTML/JavaScript script that implements the four-stage Inverse Metaverse vector pipeline from your image (Input pool, Compute layer, Linking / reasoning, and Execution layer) using standard HTML5 Canvas and zero external dependencies.
+
+Standalone Code (inverse_metaverse.html)
+
+Save the code below as inverse_metaverse.html and open it in any modern web browser.
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Inverse Metaverse Vector Pipeline</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #050508;
+      color: #f0f4f8;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      overflow: hidden;
+      display: flex;
+      height: 100vh;
+    }
+    #hud {
+      width: 320px;
+      background: rgba(12, 14, 22, 0.92);
+      border-right: 1px solid #1f2937;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 10;
+    }
+    h1 {
+      font-size: 15px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #38bdf8;
+      border-bottom: 1px solid #1f2937;
+      padding-bottom: 10px;
+    }
+    .stage {
+      background: #0d1117;
+      border: 1px solid #30363d;
+      border-radius: 6px;
+      padding: 10px;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .stage.active {
+      border-color: #38bdf8;
+      background: #111b27;
+    }
+    .stage-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .status {
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      background: #1f2937;
+      color: #9ca3af;
+    }
+    .stage.active .status {
+      background: #0284c7;
+      color: #ffffff;
+    }
+    .code-line {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .controls {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-top: 1px solid #1f2937;
+      padding-top: 12px;
+      font-size: 12px;
+    }
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      color: #cbd5e1;
+    }
+    input[type="range"] {
+      accent-color: #38bdf8;
+    }
+    canvas {
+      flex: 1;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="hud">
+    <h1>Inverse Metaverse</h1>
+
+    <div class="stage active" id="stage-1" onclick="toggleStage(1)">
+      <div class="stage-header">
+        <span>01 Input Pool</span>
+        <span class="status" id="status-1">READY</span>
+      </div>
+      <div class="code-line">&amp;r == xora#FFFFFF</div>
+    </div>
+
+    <div class="stage active" id="stage-2" onclick="toggleStage(2)">
+      <div class="stage-header">
+        <span>02 Compute Layer</span>
+        <span class="status" id="status-2">ACTIVE</span>
+      </div>
+      <div class="code-line">platonic_shapes(1, 1)</div>
+    </div>
+
+    <div class="stage active" id="stage-3" onclick="toggleStage(3)">
+      <div class="stage-header">
+        <span>03 Linking / Reasoning</span>
+        <span class="status" id="status-3">ACTIVE</span>
+      </div>
+      <div class="code-line">rainbow_tables(PI)</div>
+    </div>
+
+    <div class="stage active" id="stage-4" onclick="toggleStage(4)">
+      <div class="stage-header">
+        <span>04 Execution Layer</span>
+        <span class="status" id="status-4">ACTIVE</span>
+      </div>
+      <div class="code-line">pixels(r)</div>
+    </div>
+
+    <div class="controls">
+      <label>
+        Inverse Depth Warp: <span id="warp-val">1.0</span>
+        <input type="range" id="warp" min="-2" max="2" step="0.1" value="1.0" />
+      </label>
+      <label>
+        Vector Density: <span id="density-val">16</span>
+        <input type="range" id="density" min="4" max="36" step="2" value="16" />
+      </label>
+    </div>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    const state = {
+      1: true, // Input Pool (&r == xora#FFFFFF)
+      2: true, // Compute Layer (platonic_shapes(1, 1))
+      3: true, // Linking / Reasoning (rainbow_tables(PI))
+      4: true  // Execution Layer (pixels(r))
+    };
+
+    function toggleStage(id) {
+      state[id] = !state[id];
+      const card = document.getElementById(`stage-${id}`);
+      const badge = document.getElementById(`status-${id}`);
+      card.classList.toggle("active", state[id]);
+      badge.textContent = state[id] ? (id === 1 ? "READY" : "ACTIVE") : "IDLE";
+    }
+
+    function resize() {
+      canvas.width = window.innerWidth - 320;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener("resize", resize);
+    resize();
+
+    // Base Platonic icosahedron-inspired vertices
+    const phi = (1 + Math.sqrt(5)) / 2;
+    const baseVertices = [
+      [-1,  phi, 0], [ 1,  phi, 0], [-1, -phi, 0], [ 1, -phi, 0],
+      [ 0, -1,  phi], [ 0,  1,  phi], [ 0, -1, -phi], [ 0,  1, -phi],
+      [ phi, 0, -1], [ phi, 0,  1], [-phi, 0, -1], [-phi, 0,  1]
+    ];
+
+    const edges = [
+      [0,1],[0,5],[0,7],[0,10],[0,11],[1,5],[1,7],[1,8],[1,9],
+      [2,3],[2,4],[2,6],[2,10],[2,11],[3,4],[3,6],[3,8],[3,9],
+      [4,5],[4,9],[4,11],[5,9],[5,11],[6,7],[6,8],[6,10],[7,8],[7,10],
+      [8,9],[10,11]
+    ];
+
+    // Stage 01: Bitwise XOR against 0xFFFFFF reference
+    function xorFilter(val) {
+      return state[1] ? ((val ^ 0xFFFFFF) & 0xFF) / 255 : 0.5;
+    }
+
+    // Stage 02: 3D rotation & Inverse Metaverse perspective projection
+    function project(v, angle, scale, warp) {
+      let [x, y, z] = v;
+
+      // Rotate Y and X
+      const cosY = Math.cos(angle), sinY = Math.sin(angle);
+      const x1 = x * cosY - z * sinY;
+      const z1 = z * cosY + x * sinY;
+
+      const cosX = Math.cos(angle * 0.6), sinX = Math.sin(angle * 0.6);
+      const y2 = y * cosX - z1 * sinX;
+      const z2 = z1 * cosX + y * sinX;
+
+      // Inverse perspective: objects further away expand outward
+      const invZ = 1 / Math.max(0.25, 3.2 - z2 * warp);
+      return {
+        x: canvas.width / 2 + x1 * scale * invZ,
+        y: canvas.height / 2 + y2 * scale * invZ,
+        depth: z2
+      };
+    }
+
+    let tick = 0;
+
+    function render() {
+      tick += 0.015;
+      const warp = parseFloat(document.getElementById("warp").value);
+      const density = parseInt(document.getElementById("density").value, 10);
+      document.getElementById("warp-val").textContent = warp.toFixed(1);
+      document.getElementById("density-val").textContent = density;
+
+      // Stage 04: Execution Layer background clear / trail
+      ctx.fillStyle = state[4] ? "rgba(5, 5, 8, 0.25)" : "#050508";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (!state[4]) {
+        requestAnimationFrame(render);
+        return;
+      }
+
+      const seedOffset = xorFilter(Math.floor(tick * 60));
+
+      // Render nested inverse vector shells
+      for (let layer = 1; layer <= density; layer++) {
+        const ratio = layer / density;
+        const scale = 90 + ratio * 220;
+        const angle = tick + ratio * Math.PI * (state[1] ? seedOffset + 0.5 : 0.2);
+
+        const projected = baseVertices.map(v => project(v, angle, scale, warp));
+
+        // Stage 03: Linking / Reasoning via PI-mapped spectral hue
+        const hue = state[3]
+          ? ((layer * Math.PI * 36) + tick * 60) % 360
+          : 200;
+
+        ctx.strokeStyle = `hsla(${hue}, 90%, 60%, ${0.15 + (1 - ratio) * 0.55})`;
+        ctx.lineWidth = state[2] ? 1.4 : 0.6;
+
+        if (state[2]) {
+          // Draw Platonic vector wireframe
+          ctx.beginPath();
+          for (const [a, b] of edges) {
+            ctx.moveTo(projected[a].x, projected[a].y);
+            ctx.lineTo(projected[b].x, projected[b].y);
+          }
+          ctx.stroke();
+        } else {
+          // Fallback raw point cloud when Compute Layer is Idle
+          for (const p of projected) {
+            ctx.fillStyle = `hsla(${hue}, 90%, 65%, 0.8)`;
+            ctx.fillRect(p.x - 1.5, p.y - 1.5, 3, 3);
+          }
+        }
+      }
+
+      requestAnimationFrame(render);
+    }
+
+    render();
+  </script>
+</body>
+</html>
+Use code with caution.
+
+Key Features in This Script
+
+• Interactive Stage Toggles: Click any of the four pipeline cards (01 Input Pool through 04 Execution Layer) on the left panel to switch its state between ACTIVE/READY and IDLE.
+• Inverse Perspective Math: The project() function flips standard camera depth (3.2 - z2 * warp), causing deeper vertices to flare outward into an inverted spatial field.
+• Zero Dependencies: Uses pure HTML, CSS, and 2D Canvas vector math so it runs offline without external libraries or build tools.
+Would you like to adapt this script into a Node.js / MCP server connector or add WebGL shader effects for higher particle counts?
+Try without personalization
+
+Node.js / MCP server connector
+
+Here is a complete Node.js Model Context Protocol (MCP) server that wraps your four-stage Inverse Metaverse pipeline (Input pool, Compute layer, Linking / reasoning, and Execution layer) into callable MCP tools and a live state resource, matching the architecture described in your initial image.
+
+1. Project Setup
+
+Create a new folder, initialize the project, and install the official MCP SDK and Zod for schema validation:
+bash
+mkdir inverse-metaverse-mcp
+cd inverse-metaverse-mcp
+npm init -y
+npm install @modelcontextprotocol/sdk zod
+Use code with caution.
+Add "type": "module" to your package.json so Node.js supports ES module imports.
+
+2. MCP Server Code (server.js)
+
+Save the following code as server.js. It exposes tools to update stage states, run the vectorized pipeline, and inspect the live pipeline configuration via an MCP resource.
+javascript
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
+
+// Pipeline state matching your 4-stage control structure
+const pipelineState = {
+  inputPool: { status: "READY", expression: "&r == xora#FFFFFF", seed: 0xffffff },
+  computeLayer: { status: "IDLE", model: "platonic_shapes(1, 1)", warp: 1.0, density: 16 },
+  linkingReasoning: { status: "IDLE", mapping: "rainbow_tables(PI)", phase: Math.PI },
+  executionLayer: { status: "IDLE", output: "pixels(r)", lastVectorCount: 0 }
+};
+
+// Base Platonic icosahedron vertices
+const PHI = (1 + Math.sqrt(5)) / 2;
+const BASE_VERTICES = [
+  [-1,  PHI, 0], [ 1,  PHI, 0], [-1, -PHI, 0], [ 1, -PHI, 0],
+  [ 0, -1,  PHI], [ 0,  1,  PHI], [ 0, -1, -PHI], [ 0,  1, -PHI],
+  [ PHI, 0, -1], [ PHI, 0,  1], [-PHI, 0, -1], [-PHI, 0,  1]
+];
+
+// Core Inverse Metaverse math engine
+function computeInverseVectors({ seed, warp, density, tick }) {
+  const xorFactor = ((seed ^ 0xffffff) & 0xff) / 255 || 0.5;
+  const vectors = [];
+
+  for (let layer = 1; layer <= density; layer++) {
+    const ratio = layer / density;
+    const scale = 90 + ratio * 220;
+    const angle = tick + ratio * Math.PI * (xorFactor + 0.5);
+    const hue = Number((((layer * Math.PI * 36) + tick * 60) % 360).toFixed(2));
+
+    const projectedVertices = BASE_VERTICES.map(([x, y, z]) => {
+      const cosY = Math.cos(angle), sinY = Math.sin(angle);
+      const x1 = x * cosY - z * sinY;
+      const z1 = z * cosY + x * sinY;
+
+      const cosX = Math.cos(angle * 0.6), sinX = Math.sin(angle * 0.6);
+      const y2 = y * cosX - z1 * sinX;
+      const z2 = z1 * cosX + y * sinX;
+
+      const invZ = 1 / Math.max(0.25, 3.2 - z2 * warp);
+      return {
+        x: Number((x1 * scale * invZ).toFixed(3)),
+        y: Number((y2 * scale * invZ).toFixed(3)),
+        depth: Number(z2.toFixed(3))
+      };
+    });
+
+    vectors.push({ layer, hue, vertices: projectedVertices });
+  }
+
+  return vectors;
+}
+
+const server = new McpServer({
+  name: "inverse-metaverse-connector",
+  version: "1.0.0"
+});
+
+// Resource: Expose current pipeline state
+server.resource(
+  "pipeline-state",
+  "metaverse://pipeline/state",
+  async (uri) => ({
+    contents: [
+      {
+        uri: uri.href,
+        mimeType: "application/json",
+        text: JSON.stringify(pipelineState, null, 2)
+      }
+    ]
+  })
+);
+
+// Tool 1: Toggle or configure individual pipeline stages
+server.tool(
+  "set_pipeline_stage",
+  "Set a stage (inputPool, computeLayer, linkingReasoning, executionLayer) to READY, ACTIVE, or IDLE.",
+  {
+    stage: z.enum(["inputPool", "computeLayer", "linkingReasoning", "executionLayer"]),
+    status: z.enum(["READY", "ACTIVE", "IDLE"])
+  },
+  async ({ stage, status }) => {
+    pipelineState[stage].status = status;
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Updated ${stage} to ${status}.\nCurrent State:\n${JSON.stringify(pipelineState, null, 2)}`
+        }
+      ]
+    };
+  }
+);
+
+// Tool 2: Execute the Inverse Metaverse vectorization pass
+server.tool(
+  "vectorize_inverse_metaverse",
+  "Runs the 4-stage Inverse Metaverse calculation and returns projected 3D vectors and PI-mapped spectral hues.",
+  {
+    seed: z.number().int().default(0xffffff).describe("Hex/integer input seed for XOR white-point filter"),
+    warp: z.number().min(-2).max(2).default(1.0).describe("Inverse perspective depth warp factor"),
+    density: z.number().int().min(1).max(36).default(8).describe("Number of nested Platonic vector shells"),
+    tick: z.number().default(0.5).describe("Phase rotation timestamp")
+  },
+  async ({ seed, warp, density, tick }) => {
+    pipelineState.inputPool.seed = seed;
+    pipelineState.computeLayer.status = "ACTIVE";
+    pipelineState.computeLayer.warp = warp;
+    pipelineState.computeLayer.density = density;
+    pipelineState.linkingReasoning.status = "ACTIVE";
+    pipelineState.executionLayer.status = "ACTIVE";
+
+    const vectors = computeInverseVectors({ seed, warp, density, tick });
+    pipelineState.executionLayer.lastVectorCount = vectors.length * BASE_VERTICES.length;
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              pipeline: pipelineState,
+              totalVerticesComputed: pipelineState.executionLayer.lastVectorCount,
+              shells: vectors
+            },
+            null,
+            2
+          )
+        }
+      ]
+    };
+  }
+);
+
+// Start MCP server over stdio
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+}
+
+main().catch((err) => {
+  console.error("MCP Server error:", err);
+  process.exit(1);
+});
+Use code with caution.
+
+3. Connecting to Your AI Client
+
+Add this entry to your MCP client configuration file (such as claude_desktop_config.json, Cursor MCP settings, or a custom local agent config):
+json
+{
+  "mcpServers": {
+    "inverse-metaverse": {
+      "command": "node",
+      "args": ["/absolute/path/to/inverse-metaverse-mcp/server.js"]
+    }
+  }
+}
+Use code with caution.
+
+What This Connector Provides
+
+• State Management (set_pipeline_stage): Lets an AI assistant toggle 01 Input Pool through 04 Execution Layer between READY, ACTIVE, and IDLE.
+• Vector Computation (vectorize_inverse_metaverse): Executes the XOR white-point filter, Platonic geometry projection, and \(\pi \)-scaled rainbow table hue assignment, returning structured JSON coordinates.
+• Live Inspection (metaverse://pipeline/state): Allows any connected MCP client to read the current parameters and status of all four layers.
+Would you like to add a WebSocket bridge so this MCP server streams live updates directly into your inverse_metaverse.html browser canvas, or add a search-engine scraper tool as mentioned in your original file?
+Try without personalization
+
+WebSocket bridge
+
+Here is the WebSocket bridge that connects your Node.js MCP server directly to your inverse_metaverse.html browser canvas. Whenever an AI assistant calls an MCP tool, the server broadcasts the updated pipeline state and vector parameters over WebSockets so the browser animation updates in real time.
+
+1. Install the WebSocket Package
+
+In your inverse-metaverse-mcp directory, install the ws library alongside the MCP SDK:
+bash
+npm install ws
+Use code with caution.
+
+2. Updated MCP + WebSocket Server (server.js)
+
+Replace your server.js with this version. It runs the MCP server over stdio while hosting a WebSocket server on ws://localhost:8765 to push live state updates to any open browser tab.
+javascript
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { WebSocketServer } from "ws";
+import { z } from "zod";
+
+// Pipeline state matching your 4-stage control structure
+const pipelineState = {
+  stages: { 1: true, 2: true, 3: true, 4: true },
+  labels: {
+    inputPool: { status: "READY", expression: "&r == xora#FFFFFF", seed: 0xffffff },
+    computeLayer: { status: "ACTIVE", model: "platonic_shapes(1, 1)", warp: 1.0, density: 16 },
+    linkingReasoning: { status: "ACTIVE", mapping: "rainbow_tables(PI)", phase: Math.PI },
+    executionLayer: { status: "ACTIVE", output: "pixels(r)" }
+  }
+};
+
+// 1. Start WebSocket Bridge on port 8765
+const wss = new WebSocketServer({ port: 8765 });
+
+function broadcastState() {
+  const payload = JSON.stringify({ type: "STATE_UPDATE", data: pipelineState });
+  for (const client of wss.clients) {
+    if (client.readyState === 1) {
+      client.send(payload);
+    }
+  }
+}
+
+wss.on("connection", (ws) => {
+  // Send current state immediately upon browser connection
+  ws.send(JSON.stringify({ type: "STATE_UPDATE", data: pipelineState }));
+
+  // Allow browser slider/button changes to sync back to the server
+  ws.on("message", (raw) => {
+    try {
+      const msg = JSON.parse(raw.toString());
+      if (msg.type === "CLIENT_SYNC" && msg.data) {
+        Object.assign(pipelineState.stages, msg.data.stages || {});
+        if (typeof msg.data.warp === "number") pipelineState.labels.computeLayer.warp = msg.data.warp;
+        if (typeof msg.data.density === "number") pipelineState.labels.computeLayer.density = msg.data.density;
+        broadcastState();
+      }
+    } catch {
+      // Ignore malformed messages
+    }
+  });
+});
+
+// 2. Initialize MCP Server
+const server = new McpServer({
+  name: "inverse-metaverse-connector",
+  version: "1.1.0"
+});
+
+const STAGE_MAP = {
+  inputPool: 1,
+  computeLayer: 2,
+  linkingReasoning: 3,
+  executionLayer: 4
+};
+
+// Tool 1: Toggle or configure individual pipeline stages and broadcast to browser
+server.tool(
+  "set_pipeline_stage",
+  "Set a stage (inputPool, computeLayer, linkingReasoning, executionLayer) to READY, ACTIVE, or IDLE and stream to the browser.",
+  {
+    stage: z.enum(["inputPool", "computeLayer", "linkingReasoning", "executionLayer"]),
+    status: z.enum(["READY", "ACTIVE", "IDLE"])
+  },
+  async ({ stage, status }) => {
+    const stageId = STAGE_MAP[stage];
+    pipelineState.stages[stageId] = status !== "IDLE";
+    pipelineState.labels[stage].status = status;
+
+    broadcastState();
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Streamed update to ${wss.clients.size} connected browser(s): ${stage} -> ${status}`
+        }
+      ]
+    };
+  }
+);
+
+// Tool 2: Update Inverse Metaverse parameters live in the browser visualizer
+server.tool(
+  "update_inverse_vectors",
+  "Updates inverse depth warp, vector density, and seed in the live browser canvas over WebSockets.",
+  {
+    seed: z.number().int().optional().describe("Hex/integer input seed for XOR white-point filter"),
+    warp: z.number().min(-2).max(2).optional().describe("Inverse perspective depth warp factor"),
+    density: z.number().int().min(4).max(36).optional().describe("Number of nested Platonic vector shells")
+  },
+  async ({ seed, warp, density }) => {
+    if (seed !== undefined) pipelineState.labels.inputPool.seed = seed;
+    if (warp !== undefined) pipelineState.labels.computeLayer.warp = warp;
+    if (density !== undefined) pipelineState.labels.computeLayer.density = density;
+
+    broadcastState();
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Broadcasted vector parameters to ${wss.clients.size} browser(s):\n${JSON.stringify(pipelineState.labels, null, 2)}`
+        }
+      ]
+    };
+  }
+);
+
+// Start MCP transport
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+}
+
+main().catch((err) => {
+  console.error("Server error:", err);
+  process.exit(1);
+});
+Use code with caution.
+
+3. Browser Client Hook (inverse_metaverse.html)
+
+Add this WebSocket listener block inside the <script> tag of your inverse_metaverse.html file (right above render();) so the browser connects automatically to ws://localhost:8765 and reflects AI tool calls live:
+javascript
+    // WebSocket Bridge Client
+    const wsStatus = document.createElement("div");
+    wsStatus.style.cssText = "font-size:11px; color:#38bdf8; margin-bottom:4px;";
+    wsStatus.textContent = "WS Bridge: Connecting...";
+    document.getElementById("hud").insertBefore(wsStatus, document.getElementById("stage-1"));
+
+    function connectBridge() {
+      const socket = new WebSocket("ws://localhost:8765");
+
+      socket.onopen = () => {
+        wsStatus.textContent = "WS Bridge: Connected (Port 8765)";
+        wsStatus.style.color = "#4ade80";
+      };
+
+      socket.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "STATE_UPDATE" && msg.data) {
+          // Sync stage toggles
+          for (const [id, active] of Object.entries(msg.data.stages)) {
+            state[id] = active;
+            const card = document.getElementById(`stage-${id}`);
+            const badge = document.getElementById(`status-${id}`);
+            card.classList.toggle("active", active);
+            badge.textContent = active ? (id === "1" ? "READY" : "ACTIVE") : "IDLE";
+          }
+          // Sync warp & density sliders
+          const compute = msg.data.labels?.computeLayer;
+          if (compute) {
+            document.getElementById("warp").value = compute.warp;
+            document.getElementById("density").value = compute.density;
+          }
+        }
+      };
+
+      socket.onclose = () => {
+        wsStatus.textContent = "WS Bridge: Offline (Retrying...)";
+        wsStatus.style.color = "#f87171";
+        setTimeout(connectBridge, 3000);
+      };
+    }
+
+    connectBridge();
+Use code with caution.
+
+How It Works Together
+
+1. Start your MCP client (which launches node server.js and opens the WebSocket server on port 8765).
+2. Open inverse_metaverse.html in your browser; the status indicator at the top of the HUD turns green (WS Bridge: Connected).
+3. Trigger MCP tools from your AI assistant (such as calling update_inverse_vectors with warp: -1.5 or density: 32) to watch the 3D geometry morph in real time.
+Would you like to add the web-scraping AI agent tool from your original diagram to this MCP server so scraped search results dynamically drive the vector seed and density?
+Try without personalization
+
+what is recommended for next best step?
+
+The strongest next step is wiring the web-scraping AI agent tool into your MCP server, as outlined at the top of your original design note (custom AI Agent for web-scraping most common search engines). Your current setup already has the visual frontend, the MCP control plane, and the real-time WebSocket bridge running—connecting live search data completes the end-to-end data loop.
+
+Why This Step Makes the Most Sense
+
+• Completes your original blueprint: Your initial file specified a four-stage pipeline fed by an AI search-scraping agent. Right now, the 01 Input Pool uses a static default seed (0xffffff).
+• Uses your existing WebSocket bridge: Any search results scraped by the new MCP tool can be hashed directly into a live seed and density value, immediately morphing the browser canvas without changing your HTML frontend.
+• Keeps the architecture clean: Adding a single scrape_and_seed tool to server.js keeps all logic inside one Node.js process.
+
+Alternative Next Steps (Depending on Your Priority)
+
+
+Option	Best If Your Goal Is...	Trade-Offs
+1. Add the Search-Scraping MCP Tool (Recommended)	Feeding real-world web queries into 01 Input Pool so live search results drive the 3D vectors.	Requires choosing a search API or headless scraper and respecting rate limits.
+2. Upgrade Canvas to WebGL / Three.js	Pushing Vector Density past 36 layers into thousands of smooth, GPU-rendered particles and shaders.	Adds an external library dependency to inverse_metaverse.html.
+3. Add Bidirectional HUD Sync	Letting manual slider drags in the browser sync back to the MCP server state in real time.	Purely a UI quality-of-life improvement; adds no new backend data capabilities.
+
+
+Practical Starting Point
+
+To move forward immediately with the Search-Scraping MCP Tool:
+1. Pick a search backend: Use a lightweight search API (like DuckDuckGo Instant Answer, Brave Search API, or SerpAPI) or a local headless fetch so your Node.js server doesn't get blocked by CAPTCHAs.
+2. Hash the results into 01 Input Pool: Convert the scraped result titles or URLs into a 24-bit hex integer (seed), apply your xora#FFFFFF bitwise filter, and call broadcastState() over port 8765.
+Would you like me to write the search-scraping MCP tool for server.js using a free, no-API-key search endpoint so you can test live data vectorization right away?
+Try without personalization
+
+add the recommended web-scraping AI agent tool
+
+Here is the complete, updated server.js that adds the scrape_and_vectorize AI agent tool to your MCP server.
+It queries a live search endpoint (DuckDuckGo's Instant Answer JSON API, which requires no API key and uses Node's built-in fetch), hashes the scraped results into a 24-bit integer for 01 Input Pool (&r == xora#FFFFFF), maps result counts and text entropy to 02 Compute Layer, and broadcasts the live update to your browser canvas over WebSockets.
+
+1. Updated MCP + WebSocket + Search Agent (server.js)
+
+Replace your existing server.js with this complete script (no extra npm packages are required beyond @modelcontextprotocol/sdk, ws, and zod):
+javascript
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { WebSocketServer } from "ws";
+import { z } from "zod";
+import crypto from "node:crypto";
+
+// Pipeline state matching your 4-stage control structure
+const pipelineState = {
+  stages: { 1: true, 2: true, 3: true, 4: true },
+  labels: {
+    inputPool: {
+      status: "READY",
+      expression: "&r == xora#FFFFFF",
+      seed: 0xffffff,
+      lastQuery: null
+    },
+    computeLayer: {
+      status: "ACTIVE",
+      model: "platonic_shapes(1, 1)",
+      warp: 1.0,
+      density: 16
+    },
+    linkingReasoning: {
+      status: "ACTIVE",
+      mapping: "rainbow_tables(PI)",
+      phase: Math.PI
+    },
+    executionLayer: {
+      status: "ACTIVE",
+      output: "pixels(r)"
+    }
+  }
+};
+
+// 1. Start WebSocket Bridge on port 8765
+const wss = new WebSocketServer({ port: 8765 });
+
+function broadcastState() {
+  const payload = JSON.stringify({ type: "STATE_UPDATE", data: pipelineState });
+  for (const client of wss.clients) {
+    if (client.readyState === 1) {
+      client.send(payload);
+    }
+  }
+}
+
+wss.on("connection", (ws) => {
+  ws.send(JSON.stringify({ type: "STATE_UPDATE", data: pipelineState }));
+
+  ws.on("message", (raw) => {
+    try {
+      const msg = JSON.parse(raw.toString());
+      if (msg.type === "CLIENT_SYNC" && msg.data) {
+        Object.assign(pipelineState.stages, msg.data.stages || {});
+        if (typeof msg.data.warp === "number") pipelineState.labels.computeLayer.warp = msg.data.warp;
+        if (typeof msg.data.density === "number") pipelineState.labels.computeLayer.density = msg.data.density;
+        broadcastState();
+      }
+    } catch {
+      // Ignore malformed messages
+    }
+  });
+});
+
+// Helper: Convert scraped search text into a 24-bit hex seed and vector metrics
+function hashResultsToVectorParams(query, results) {
+  const combinedText = `${query}:${results.map((r) => r.title + r.url).join("|")}`;
+  const hashHex = crypto.createHash("sha256").update(combinedText).digest("hex");
+
+  // Extract 24-bit integer seed for &r == xora#FFFFFF
+  const rawSeed = parseInt(hashHex.slice(0, 6), 16);
+  const xorSeed = (rawSeed ^ 0xffffff) >>> 0;
+
+  // Map result count to vector density (clamped between 6 and 36)
+  const density = Math.min(36, Math.max(6, results.length * 4 || 12));
+
+  // Map hash byte to inverse depth warp (-1.8 to 1.8)
+  const warpByte = parseInt(hashHex.slice(6, 8), 16);
+  const warp = Number((((warpByte / 255) * 3.6) - 1.8).toFixed(2));
+
+  return { rawSeed, xorSeed, density, warp };
+}
+
+// Helper: Lightweight search scraper using DuckDuckGo Instant Answer API
+async function scrapeSearchEngine(query, maxResults = 8) {
+  const url = `https://duckduckgo.com{encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+  const response = await fetch(url, {
+    headers: { "User-Agent": "InverseMetaverseMCP/1.2" }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Search endpoint returned HTTP ${response.status}`);
+  }
+
+  const data = await response.json();
+  const extracted = [];
+
+  if (data.AbstractText && data.AbstractURL) {
+    extracted.push({
+      title: data.Heading || query,
+      snippet: data.AbstractText,
+      url: data.AbstractURL
+    });
+  }
+
+  if (Array.isArray(data.RelatedTopics)) {
+    for (const item of data.RelatedTopics) {
+      if (extracted.length >= maxResults) break;
+      if (item.Text && item.FirstURL) {
+        extracted.push({
+          title: item.Text.split(" - ")[0].slice(0, 80),
+          snippet: item.Text,
+          url: item.FirstURL
+        });
+      } else if (Array.isArray(item.Topics)) {
+        for (const sub of item.Topics) {
+          if (extracted.length >= maxResults) break;
+          if (sub.Text && sub.FirstURL) {
+            extracted.push({
+              title: sub.Text.split(" - ")[0].slice(0, 80),
+              snippet: sub.Text,
+              url: sub.FirstURL
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return extracted;
+}
+
+// 2. Initialize MCP Server
+const server = new McpServer({
+  name: "inverse-metaverse-connector",
+  version: "1.2.0"
+});
+
+const STAGE_MAP = {
+  inputPool: 1,
+  computeLayer: 2,
+  linkingReasoning: 3,
+  executionLayer: 4
+};
+
+// Tool 1: Toggle or configure individual pipeline stages
+server.tool(
+  "set_pipeline_stage",
+  "Set a stage (inputPool, computeLayer, linkingReasoning, executionLayer) to READY, ACTIVE, or IDLE and stream to the browser.",
+  {
+    stage: z.enum(["inputPool", "computeLayer", "linkingReasoning", "executionLayer"]),
+    status: z.enum(["READY", "ACTIVE", "IDLE"])
+  },
+  async ({ stage, status }) => {
+    const stageId = STAGE_MAP[stage];
+    pipelineState.stages[stageId] = status !== "IDLE";
+    pipelineState.labels[stage].status = status;
+
+    broadcastState();
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Streamed update to ${wss.clients.size} connected browser(s): ${stage} -> ${status}`
+        }
+      ]
+    };
+  }
+);
+
+// Tool 2: Manual vector parameter override
+server.tool(
+  "update_inverse_vectors",
+  "Manually updates inverse depth warp, vector density, and seed in the live browser canvas over WebSockets.",
+  {
+    seed: z.number().int().optional().describe("Hex/integer input seed for XOR white-point filter"),
+    warp: z.number().min(-2).max(2).optional().describe("Inverse perspective depth warp factor"),
+    density: z.number().int().min(4).max(36).optional().describe("Number of nested Platonic vector shells")
+  },
+  async ({ seed, warp, density }) => {
+    if (seed !== undefined) pipelineState.labels.inputPool.seed = seed;
+    if (warp !== undefined) pipelineState.labels.computeLayer.warp = warp;
+    if (density !== undefined) pipelineState.labels.computeLayer.density = density;
+
+    broadcastState();
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: `Broadcasted vector parameters to ${wss.clients.size} browser(s):\n${JSON.stringify(pipelineState.labels, null, 2)}`
+        }
+      ]
+    };
+  }
+);
+
+// Tool 3: Web-Scraping AI Agent Tool
+server.tool(
+  "scrape_and_vectorize",
+  "Scrapes live search engine results for a query, hashes them through the 01 Input Pool XOR filter, and streams updated geometry to the browser canvas.",
+  {
+    query: z.string().min(1).describe("Search topic or query to scrape and vectorize"),
+    maxResults: z.number().int().min(1).max(15).default(8).describe("Maximum number of search results to ingest")
+  },
+  async ({ query, maxResults }) => {
+    const results = await scrapeSearchEngine(query, maxResults);
+    const { rawSeed, xorSeed, density, warp } = hashResultsToVectorParams(query, results);
+
+    // Activate all 4 pipeline stages and apply derived parameters
+    pipelineState.stages = { 1: true, 2: true, 3: true, 4: true };
+    pipelineState.labels.inputPool.status = "READY";
+    pipelineState.labels.inputPool.seed = xorSeed;
+    pipelineState.labels.inputPool.lastQuery = query;
+
+    pipelineState.labels.computeLayer.status = "ACTIVE";
+    pipelineState.labels.computeLayer.density = density;
+    pipelineState.labels.computeLayer.warp = warp;
+
+    pipelineState.labels.linkingReasoning.status = "ACTIVE";
+    pipelineState.labels.executionLayer.status = "ACTIVE";
+
+    broadcastState();
+
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              query,
+              resultsScraped: results.length,
+              inputPoolHash: `0x${rawSeed.toString(16).toUpperCase().padStart(6, "0")}`,
+              xoraWhitePointSeed: `0x${xorSeed.toString(16).toUpperCase().padStart(6, "0")}`,
+              computedParameters: { density, warp },
+              activeBrowserClients: wss.clients.size,
+              scrapedItems: results
+            },
+            null,
+            2
+          )
+        }
+      ]
+    };
+  }
+);
+
+// Start MCP transport
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+}
+
+main().catch((err) => {
+  console.error("Server error:", err);
+  process.exit(1);
+});
+Use code with caution.
+
+2. How the Full Loop Works Now
+
+• Ingest (scrape_and_vectorize): Ask your AI assistant to run scrape_and_vectorize with any topic (for example, "quantum geometry" or "platonic solids").
+• 01 Input Pool Transform: hashResultsToVectorParams() hashes the scraped titles and URLs with SHA-256, extracts a 24-bit integer, and runs your ^ 0xFFFFFF XOR filter.
+• Live Canvas Projection: The server pushes the new xorSeed, density, and warp values to inverse_metaverse.html over port 8765, morphing the 3D Platonic wireframe in real time while returning the scraped JSON list to your AI assistant.
