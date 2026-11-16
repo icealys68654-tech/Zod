@@ -1,0 +1,5 @@
+Zod is a TypeScript-first schema validation library. It lets developers define schemas for data and use those schemas to validate values at runtime while inferring corresponding TypeScript types.
+
+The central idea is to describe the expected shape of data once, then use that schema at application boundaries such as API requests, configuration loading, and form submissions. Validation produces either parsed, typed data or structured errors that can be used to report invalid input.
+
+This repository is named Zod. The Makefile provides common Node.js project tasks and assumes matching npm scripts are configured in package.json.
