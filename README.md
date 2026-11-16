@@ -1,4 +1,4 @@
-#Zod
+##Zod
 1. How It Works Together
 
 1. Start your MCP client (which launches node server.js and opens the WebSocket server on port 8765).
