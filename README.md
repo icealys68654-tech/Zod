@@ -98,11 +98,23 @@ The pipeline instruction pointer advances through these stages, with conditions 
 
 Optimize transfer with multi-stage builds, cached layers, named volumes, pruning, and compression or chunking where appropriate.
 
+### Current server controls
+
+`Server.js` exposes an MCP server and a WebSocket bridge for the browser pipeline. In addition to the four browser stages, its current controls include:
+
+- `advance_cicd_instruction_pointer` — record success or failure for the current README-listed stage. Failures route to Repair, with a bounded retry count.
+- `repair_data` — revalidate the current in-memory results, fill a missing title from a valid URL hostname, and refresh integrity metadata.
+- `remove_low_tier_data` — filter low-completeness records from the in-memory results only. It does not delete files or repository content.
+- `prepare_transfer_chunks` — prepare whole-record chunks under a configured byte limit and return per-chunk checksums. It does not create containers or write files.
+- A recurring integrity check revalidates the in-memory batch every five minutes.
+
+These controls are process-local: data and pipeline state are not persisted across restarts. The stage pointer records reported outcomes; it does not itself run builds, tests, repairs, deployments, or other shell commands. Containerization, CI configuration, filesystem cleanup, and deployment still need explicit implementation and testing before those README requirements can be considered operational.
+
+Do not upload `node_modules`, source caches, Docker layers, secrets, or CI credentials. Use explicit storage limits and isolated paths for any future container or transfer-volume implementation.
+
 ### Hosting and deployment
 
-- A static hosting provider serves the compiled frontend; application APIs provide business functionality; an asset-storage service stores larger assets.
-- Do not upload `node_modules`, source caches, Docker layers, secrets, or CI credentials.
-- Recommended execution ends with verified static publication to Zod. Check assets, routing, platform API calls, console errors, and deployment integrity.
+A static hosting provider serves the compiled frontend; application APIs provide business functionality; an asset-storage service stores larger assets. Recommended execution ends with verified static publication to Zod. Check assets, routing, platform API calls, console errors, and deployment integrity.
 
 ### Accessibility review
 
