@@ -2,6 +2,8 @@ import { defineConfig } from "vite";
 import { fileURLToPath } from "node:url";
 
 export default defineConfig({
+  // GitHub Pages project sites are hosted under /<repository-name>/.
+  base: process.env.GITHUB_ACTIONS === "true" ? "/Zod/" : "/",
   build: {
     outDir: "dist",
     sourcemap: true,
