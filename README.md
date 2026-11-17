@@ -100,9 +100,9 @@ Optimize transfer with multi-stage builds, cached layers, named volumes, pruning
 
 ### Hosting and deployment
 
-- Wix hosts the compiled frontend; Wix APIs provide business functionality; Wix Media stores larger assets.
+- A static hosting provider serves the compiled frontend; application APIs provide business functionality; an asset-storage service stores larger assets.
 - Do not upload `node_modules`, source caches, Docker layers, secrets, or CI credentials.
-- Recommended execution ends with verified static publication to Zod. Check assets, routing, Wix API calls, console errors, and deployment integrity.
+- Recommended execution ends with verified static publication to Zod. Check assets, routing, platform API calls, console errors, and deployment integrity.
 
 ### Accessibility review
 
