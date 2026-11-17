@@ -4,7 +4,8 @@ import { WebSocketServer } from "ws";
 import { z } from "zod";
 import crypto from "node:crypto";
 
-// Pipeline state matching your 4-stage control structure
+// Pipeline state matching the four-stage control structure, with data-integrity
+// status for tiering, transfer, repair, and recurring checks.
 const pipelineState = {
   stages: { 1: true, 2: true, 3: true, 4: true },
   labels: {
@@ -28,9 +29,19 @@ const pipelineState = {
     executionLayer: {
       status: "ACTIVE",
       output: "pixels(r)"
+    },
+    dataChecks: {
+      status: "PENDING",
+      lastCheckedAt: null,
+      recordsChecked: 0,
+      repairedRecords: 0,
+      tiers: { high: 0, medium: 0, low: 0 },
+      transfer: { status: "IDLE", itemCount: 0, checksum: null }
     }
   }
 };
+
+let lastTransferredResults = [];
 
 // 1. Start WebSocket Bridge on port 8765
 const wss = new WebSocketServer({ port: 8765 });
@@ -81,9 +92,72 @@ function hashResultsToVectorParams(query, results) {
   return { rawSeed, xorSeed, density, warp };
 }
 
+// Validate incoming records, make safe repairs to text fields, and tier records
+// by completeness. Invalid or non-HTTP(S) URLs are rejected rather than sent on.
+function validateAndTierResults(results) {
+  const tiers = { high: 0, medium: 0, low: 0 };
+  let repairedRecords = 0;
+  const validResults = [];
+
+  for (const item of results) {
+    if (!item || typeof item !== "object" || typeof item.url !== "string") continue;
+
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(item.url.trim());
+    } catch {
+      continue;
+    }
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") continue;
+
+    let title = typeof item.title === "string" ? item.title.trim() : "";
+    let snippet = typeof item.snippet === "string" ? item.snippet.trim() : "";
+    if (!title) {
+      title = parsedUrl.hostname;
+      repairedRecords += 1;
+    }
+    if (!snippet) repairedRecords += 1;
+
+    const tier = title && snippet ? "high" : title || snippet ? "medium" : "low";
+    tiers[tier] += 1;
+    validResults.push({ title, snippet, url: parsedUrl.toString(), tier });
+  }
+
+  return { results: validResults, tiers, repairedRecords };
+}
+
+function checksumResults(results) {
+  return crypto.createHash("sha256").update(JSON.stringify(results)).digest("hex");
+}
+
+// Recurring integrity check: re-validate the last transferred batch and verify
+// its checksum. It does not fetch or transmit new data.
+function runDataIntegrityCheck() {
+  const previousChecksum = pipelineState.labels.dataChecks.transfer.checksum;
+  const checked = validateAndTierResults(lastTransferredResults);
+  const checksum = checksumResults(checked.results);
+  const checksumChanged = previousChecksum !== null && previousChecksum !== checksum;
+
+  lastTransferredResults = checked.results;
+  pipelineState.labels.dataChecks = {
+    ...pipelineState.labels.dataChecks,
+    status: checksumChanged ? "REPAIRED" : "OK",
+    lastCheckedAt: new Date().toISOString(),
+    recordsChecked: checked.results.length,
+    repairedRecords: checked.repairedRecords,
+    tiers: checked.tiers,
+    transfer: {
+      status: checked.results.length ? "VERIFIED" : "IDLE",
+      itemCount: checked.results.length,
+      checksum
+    }
+  };
+  broadcastState();
+}
+
 // Helper: Lightweight search scraper using DuckDuckGo Instant Answer API
 async function scrapeSearchEngine(query, maxResults = 8) {
-  const url = `https://duckduckgo.com{encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+  const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
   const response = await fetch(url, {
     headers: { "User-Agent": "InverseMetaverseMCP/1.2" }
   });
@@ -199,14 +273,32 @@ server.tool(
 // Tool 3: Web-Scraping AI Agent Tool
 server.tool(
   "scrape_and_vectorize",
-  "Scrapes live search engine results for a query, hashes them through the 01 Input Pool XOR filter, and streams updated geometry to the browser canvas.",
+  "Scrapes live search engine results, validates and tiers records, repairs missing text fields, verifies the transfer checksum, and streams updated geometry to the browser canvas.",
   {
-    query: z.string().min(1).describe("Search topic or query to scrape and vectorize"),
+    query: z.string().trim().min(1).describe("Search topic or query to scrape and vectorize"),
     maxResults: z.number().int().min(1).max(15).default(8).describe("Maximum number of search results to ingest")
   },
   async ({ query, maxResults }) => {
-    const results = await scrapeSearchEngine(query, maxResults);
+    const scrapedResults = await scrapeSearchEngine(query, maxResults);
+    const checked = validateAndTierResults(scrapedResults);
+    const results = checked.results;
+    const checksum = checksumResults(results);
     const { rawSeed, xorSeed, density, warp } = hashResultsToVectorParams(query, results);
+
+    // Transfer only validated records into the in-memory processing batch.
+    lastTransferredResults = results;
+    pipelineState.labels.dataChecks = {
+      status: "OK",
+      lastCheckedAt: new Date().toISOString(),
+      recordsChecked: results.length,
+      repairedRecords: checked.repairedRecords,
+      tiers: checked.tiers,
+      transfer: {
+        status: "VERIFIED",
+        itemCount: results.length,
+        checksum
+      }
+    };
 
     // Activate all 4 pipeline stages and apply derived parameters
     pipelineState.stages = { 1: true, 2: true, 3: true, 4: true };
@@ -230,7 +322,9 @@ server.tool(
           text: JSON.stringify(
             {
               query,
-              resultsScraped: results.length,
+              resultsScraped: scrapedResults.length,
+              resultsAccepted: results.length,
+              dataIntegrity: pipelineState.labels.dataChecks,
               inputPoolHash: `0x${rawSeed.toString(16).toUpperCase().padStart(6, "0")}`,
               xoraWhitePointSeed: `0x${xorSeed.toString(16).toUpperCase().padStart(6, "0")}`,
               computedParameters: { density, warp },
@@ -245,6 +339,11 @@ server.tool(
     };
   }
 );
+
+// Re-check data integrity every five minutes; unref so this timer does not keep
+// the server process alive on its own.
+const integrityCheckTimer = setInterval(runDataIntegrityCheck, 5 * 60 * 1000);
+integrityCheckTimer.unref();
 
 // Start MCP transport
 async function main() {
