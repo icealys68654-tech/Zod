@@ -8,8 +8,8 @@
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1",
     "start": "node Server.js",
-    "test": "node --check Server.js",
-    "lint": "node --check Server.js"
+    "test": "node --test",
+    "lint": "node --check Server.js && node --check vite.config.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.11.0",
