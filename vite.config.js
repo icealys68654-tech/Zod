@@ -1,5 +1,4 @@
 import { defineConfig } from "vite";
-import { fileURLToPath } from "node:url";
 
 export default defineConfig({
   // GitHub Pages project sites are hosted under /<repository-name>/.
@@ -8,9 +7,7 @@ export default defineConfig({
     outDir: "dist",
     sourcemap: true,
     rollupOptions: {
-      input: {
-        index: fileURLToPath(new URL("./inverse_metaverse.html", import.meta.url))
-      }
+      input: "./inverse_metaverse.html"
     }
   },
   server: {
