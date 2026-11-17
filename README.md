@@ -1,26 +1,26 @@
 # Zod
 
-Zod is a TypeScript-first schema validation library. It lets developers define schemas for data and validate values at runtime while inferring corresponding TypeScript types.
+Zod is a TypeScript-first schema validation library. Define a schema once, validate values at runtime, and infer the corresponding TypeScript types from that same source of truth.
 
-## Why use Zod?
+## 01 / The idea
 
-The core idea is to describe the expected shape of data once and then use that schema at application boundaries such as:
+**One schema. Every boundary.** Describe the expected shape of data once, then use that schema wherever information enters your application.
 
-- API requests
-- Configuration loading
-- Form submissions
+- **API requests** — protect service boundaries with clear, runtime-safe contracts.
+- **Configuration** — load settings with confidence and actionable error details.
+- **Forms** — turn user input into parsed, typed data—or useful feedback.
 
-Validation produces either parsed, typed data or structured errors that can be reported back to the caller.
+Validation produces parsed, typed data when input matches the schema. Otherwise, Zod throws a validation error with details that help diagnose the mismatch.
 
-## Quick start
+## 02 / Quick start
 
-Install the package with npm:
+Install Zod:
 
 ```bash
 npm install zod
 ```
 
-Then define a schema and parse input:
+Define a schema and parse input:
 
 ```ts
 import { z } from "zod";
@@ -40,29 +40,83 @@ const result = UserSchema.parse({
 console.log(result.id);
 ```
 
-If the input does not match the schema, Zod throws a validation error with details that make it easy to debug.
+## 03 / Developer workflow
 
-## Makefile workflow
+The repository's Makefile provides commands for common Node.js tasks. These targets assume their corresponding npm scripts are defined in `package.json`.
 
-This repository includes a `Makefile` for common Node.js tasks, including:
+| Command | Purpose |
+| --- | --- |
+| `make install` | Install dependencies. |
+| `make build` | Build the project. |
+| `make test` | Run the test suite. |
+| `make lint` | Run linting checks. |
+| `make clean` | Remove build artifacts. |
 
-- `make install` — install dependencies
-- `make build` — build the project
-- `make test` — run the test suite
-- `make lint` — run linting checks
-- `make clean` — remove build artifacts
+## 04 / Project structure
 
-These targets assume matching npm scripts are defined in `package.json`.
+Everything in its right place:
 
-## Project structure
+```text
+Zod/
+├── Makefile                 # Development commands
+├── package.json             # Project scripts and dependencies
+├── application/             # Application/server runtime files
+├── README.md                # Project documentation
+└── Abstract.txt              # Project notes
+```
 
-The repository is organized around a Node.js project setup with a small set of developer-facing files:
+The tree above summarizes the supplied project structure. Confirm paths against the checked-out revision before relying on them; repository contents can change.
 
-- `Makefile` for development commands
-- `package.json` for project scripts and dependencies
-- application/server files for runtime behavior
-- documentation files such as `README.md` and `Abstract.txt`
+## Supplementary delivery reference
 
-## Summary
+The following requirements and workflow notes are retained from the supplied project reference. They describe a static-site delivery and AI-assisted workflow; they are not claims that these systems or checks are implemented in this repository.
 
-Zod helps teams validate inputs consistently, improve reliability, and maintain strong TypeScript typing across application boundaries.
+### Build and CI/CD requirements
+
+- Webpack compiles a production-ready static bundle containing HTML, CSS, JavaScript, and only the small frontend assets required.
+- CI/CD installs from the lockfile and runs production builds, tests, linting, bundle-size checks, security scanning, artifact validation, and cleanup.
+- Required inputs are `package.json`, the lockfile, Webpack configuration, source files, public assets, CI configuration, and a Dockerfile. The output includes a root `index.html` with production-safe asset paths.
+- A Docker example uses a Go builder, a smaller Alpine runtime, and a `/data` volume for high-transfer working data.
+
+### AI-assisted workflow and safeguards
+
+AI may classify failures; suggest dependency and configuration changes; explain static-analysis results; propose repairs; generate tests; analyze bundle growth; detect obsolete artifacts; and draft release notes.
+
+AI-generated changes run in a branch or pre-production environment, are re-tested and scanned, and require human approval before production.
+
+The pipeline instruction pointer advances through these stages, with conditions and bounded retries:
+
+1. Fetch
+2. Build
+3. Containerization
+4. Test
+5. Repair
+6. Removal
+7. Transfer
+8. Deployment
+9. Audit
+
+Optimize transfer with multi-stage builds, cached layers, named volumes, pruning, and compression or chunking where appropriate.
+
+### Hosting and deployment
+
+- Wix hosts the compiled frontend; Wix APIs provide business functionality; Wix Media stores larger assets.
+- Do not upload `node_modules`, source caches, Docker layers, secrets, or CI credentials.
+- Recommended execution ends with verified static publication to Zod. Check assets, routing, Wix API calls, console errors, and deployment integrity.
+
+### Accessibility review
+
+This static simulation preserves the existing accessibility and navigation patterns and provides a review checklist for reusable summary components:
+
+- Retain semantic landmarks, one primary page heading, descriptive navigation, and a skip link.
+- Give search, filter, and sort controls explicit accessible labels; announce result counts through a live status region.
+- Keep keyboard focus indicators, mobile-menu keyboard behavior, responsive layout rules, and reduced-motion preferences enabled.
+- Review manually at desktop, tablet, and smartphone widths. Verify keyboard navigation, focus order, contrast, zoom, and screen-reader announcements.
+
+This review does not claim that an automated scan passed. It documents static checks and preserves the source summary content without alteration.
+
+### Reusable static components
+
+- **Shared structure:** Header, navigation, main content, panels, cards, and footer use consistent classes and containers.
+- **Grid system:** Responsive CSS Grid utilities adapt content across desktop, tablet, and smartphone widths.
+- **Structured data:** Reusable JavaScript objects describe component names, classes, and summary sections without requiring a CMS.
