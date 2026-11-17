@@ -7,7 +7,7 @@ export default defineConfig({
     outDir: "dist",
     sourcemap: true,
     rollupOptions: {
-      input: "./inverse_metaverse.html"
+      input: "./index.html"
     }
   },
   server: {
